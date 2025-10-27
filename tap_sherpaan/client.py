@@ -37,7 +37,8 @@ class SherpaClient:
             timeout: Request timeout in seconds
         """
         self.shop_id = shop_id
-        self.wsdl_url = f"https://sherpaservices-tst.sherpacloud.eu/{shop_id}/Sherpa.asmx?wsdl"
+        #self.wsdl_url = f"https://sherpaservices-tst.sherpacloud.eu/{shop_id}/Sherpa.asmx?wsdl"
+        self.wsdl_url = f"https://sherpaservices-prd.sherpacloud.eu/{shop_id}/Sherpa.asmx?wsdl"
         session = Session()
         # Set default headers (Postman-style)
         session.headers.update({
