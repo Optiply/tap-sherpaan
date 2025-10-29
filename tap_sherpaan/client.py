@@ -27,7 +27,7 @@ class SherpaClient:
         self,
         shop_id: str,
         tap: "TapSherpaan",
-        timeout: int = 30,
+        timeout: int = 300,
     ) -> None:
         """Initialize the Sherpa SOAP client.
 
