@@ -1,6 +1,7 @@
 """Stream type classes for tap-sherpa."""
 from __future__ import annotations
 
+import html
 import typing as t
 from importlib import resources
 from typing import Dict, Any, Optional, Iterable
@@ -34,7 +35,7 @@ class SherpaStream(Stream):
 
 
 # Import PaginatedStream after SherpaStream is defined to avoid circular imports
-from tap_sherpaan.pagination import PaginatedStream, PaginationMode
+from tap_sherpaan.pagination import PaginatedStream
 
 
 class ChangedItemsInformationStream(PaginatedStream):
@@ -195,9 +196,8 @@ class SupplierInfoStream(PaginatedStream):
     # Get supplier info for each supplier
     name = "supplier_info"
     parent_stream_type = ChangedSuppliersStream
-    primary_keys = ["SupplierCode"]
+    primary_keys = ["ClientCode"]
     response_path = "ResponseValue"
-    paginate = False
     schema = th.PropertiesList(
         th.Property("SupplierCode", th.StringType),
         th.Property("Token", th.StringType),
@@ -226,12 +226,14 @@ class SupplierInfoStream(PaginatedStream):
     ).to_dict()
 
     def get_supplier_info(self, token: int = 0, **kwargs) -> str:
+        # HTML/XML encode the supplierCode to handle special characters like &, <, >, ", '
+        encoded_supplier_code = html.escape(self._current_client_code)
         return f"""<?xml version="1.0" encoding="utf-8"?>
 <soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
   <soap12:Body>
     <tns:SupplierInfo xmlns:tns="http://sherpa.sherpaan.nl/">
       <tns:securityCode>{self.config["security_code"]}</tns:securityCode>
-      <tns:supplierCode>{self._current_client_code}</tns:supplierCode>
+      <tns:supplierCode>{encoded_supplier_code}</tns:supplierCode>
     </tns:SupplierInfo>
   </soap12:Body>
 </soap12:Envelope>"""
@@ -376,6 +378,17 @@ class ChangedPurchasesStream(PaginatedStream):
             # Only yield records that have OrderNumber (discard all others as useless)
             if record.get("OrderNumber"):
                 yield record
+            # Records without OrderNumber are completely discarded - not useful
+
+    # def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+    #     """Return a context dictionary for child streams."""
+    #     # Only create child context if OrderNumber exists
+    #     if not record.get("OrderNumber"):
+    #         # Return empty context to skip child stream processing
+    #         return {}
+    #     return {
+    #         "purchase_number": record["OrderNumber"],
+    #     }
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return context for child streams."""
@@ -402,7 +415,6 @@ class PurchaseInfoStream(PaginatedStream):
     parent_stream_type = ChangedPurchasesStream
     primary_keys = ["PurchaseOrderNumber"]
     response_path = "ResponseValue"
-    paginate = False
     schema = th.PropertiesList(
         th.Property("SupplierCode", th.StringType),
         th.Property("PurchaseOrderNumber", th.StringType),
