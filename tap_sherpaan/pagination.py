@@ -442,9 +442,16 @@ class PaginatedStream(SherpaStream):
         """Get the starting replication key value from state only. Config is not a source of truth."""
         state = self._tap_state
         if "bookmarks" in state and self.name in state["bookmarks"]:
-            return state["bookmarks"][self.name].get("replication_key_value")
+            bookmark = state["bookmarks"][self.name]
+            # Get the replication key name (e.g., "Token")
+            replication_key = getattr(self, "replication_key", "token")
+            # Look for the replication key value using the actual replication key name
+            # Also check for "replication_key_value" for backward compatibility
+            replication_key_value = bookmark.get(replication_key) or bookmark.get("replication_key_value")
+            if replication_key_value is not None:
+                return str(replication_key_value)
         # Default to 1 if no token found in state
-        return "1"
+        return "0"
 
 
     def get_records_with_custom_client_method(
