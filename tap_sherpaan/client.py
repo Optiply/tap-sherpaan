@@ -38,16 +38,7 @@ class SherpaClient:
         """
         self.shop_id = shop_id
         #self.wsdl_url = f"https://sherpaservices-tst.sherpacloud.eu/{shop_id}/Sherpa.asmx?wsdl"
-        #self.wsdl_url = f"https://sherpaservices-prd.sherpacloud.eu/{shop_id}/Sherpa.asmx?wsdl"
-        base_url = self.tap.config[
-            "base_url",
-            "https://sherpaservices-prd.sherpacloud.eu"
-        ]
-        # Ensure base_url doesn't have trailing slash and includes shop_id
-        if base_url.endswith("/"):
-            base_url = base_url[:-1]
-        self.wsdl_url = f"{base_url}/{shop_id}/Sherpa.asmx?wsdl"
-
+        self.wsdl_url = f"https://sherpaservices-prd.sherpacloud.eu/{shop_id}/Sherpa.asmx?wsdl"
         session = Session()
         # Set default headers (Postman-style)
         session.headers.update({
