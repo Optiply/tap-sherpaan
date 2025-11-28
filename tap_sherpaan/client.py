@@ -413,3 +413,15 @@ class SherpaStream(Stream):
         This method should be overridden by specific stream classes.
         """
         raise NotImplementedError("Stream classes must implement get_records")
+
+    def _write_state_message(self) -> None:
+        """Write out a STATE message with the latest state."""
+        tap_state = self.tap_state
+
+        if tap_state and tap_state.get("bookmarks"):
+            for stream_name in tap_state.get("bookmarks").keys():
+                # clean partitions from state only for streams with no rep key
+                if tap_state["bookmarks"][stream_name].get("partitions") and not self._tap.streams[stream_name].replication_key:
+                    tap_state["bookmarks"][stream_name]["partitions"] = []
+
+        singer.write_message(StateMessage(value=tap_state))
