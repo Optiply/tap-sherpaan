@@ -14,8 +14,6 @@ from zeep import Client, Settings
 from zeep.transports import Transport
 
 from singer_sdk.streams import Stream
-from singer_sdk.helpers._singer import StateMessage
-from singer_sdk import singer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -251,7 +249,7 @@ class SherpaStream(Stream):
                 ):
                     bookmark["partitions"] = []
 
-        singer.write_message(StateMessage(value=tap_state))
+        super()._write_state_message()
 
     def _increment_stream_state(self, token: Union[str, Dict[str, Any]], context: Optional[Dict[str, Any]] = None) -> None:
         """Increment stream state with token value.
