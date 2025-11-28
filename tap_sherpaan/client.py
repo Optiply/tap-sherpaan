@@ -14,9 +14,8 @@ from zeep import Client, Settings
 from zeep.transports import Transport
 
 from singer_sdk.streams import Stream
-
-import singer
-from singer import StateMessage
+from singer_sdk.helpers._singer import StateMessage
+from singer_sdk import singer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -232,6 +231,28 @@ class SherpaStream(Stream):
                 return str(replication_key_value)
         return "0"
 
+    def _write_state_message(self) -> None:
+        """Write a STATE message with cleaned bookmarks.
+
+        Removes partition data for streams that do not have a replication key,
+        to avoid polluting ``state.json`` with non-incremental child stream
+        partitions (e.g. ``purchase_info``, ``supplier_info``).
+        """
+        tap_state = self.tap_state
+
+        if tap_state and tap_state.get("bookmarks"):
+            for stream_name, bookmark in list(tap_state["bookmarks"].items()):
+                # If the stream exists and has no replication key, drop partitions.
+                tap_stream = self._tap.streams.get(stream_name)
+                if (
+                    tap_stream is not None
+                    and not getattr(tap_stream, "replication_key", None)
+                    and bookmark.get("partitions")
+                ):
+                    bookmark["partitions"] = []
+
+        singer.write_message(StateMessage(value=tap_state))
+
     def _increment_stream_state(self, token: Union[str, Dict[str, Any]], context: Optional[Dict[str, Any]] = None) -> None:
         """Increment stream state with token value.
         
@@ -416,15 +437,3 @@ class SherpaStream(Stream):
         This method should be overridden by specific stream classes.
         """
         raise NotImplementedError("Stream classes must implement get_records")
-
-    def _write_state_message(self) -> None:
-        """Write out a STATE message with the latest state."""
-        tap_state = self.tap_state
-
-        if tap_state and tap_state.get("bookmarks"):
-            for stream_name in tap_state.get("bookmarks").keys():
-                # clean partitions from state only for streams with no rep key
-                if tap_state["bookmarks"][stream_name].get("partitions") and not self._tap.streams[stream_name].replication_key:
-                    tap_state["bookmarks"][stream_name]["partitions"] = []
-
-        singer.write_message(StateMessage(value=tap_state))
