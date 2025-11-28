@@ -15,6 +15,9 @@ from zeep.transports import Transport
 
 from singer_sdk.streams import Stream
 
+import singer
+from singer import StateMessage
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("zeep").setLevel(logging.WARNING)
