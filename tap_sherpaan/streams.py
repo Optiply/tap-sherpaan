@@ -445,3 +445,48 @@ class PurchaseInfoStream(SherpaStream):
             context=context,
             page_size=page_size,
         )
+
+
+class ChangedStockByWarehouseGroupCodeStream(SherpaStream):
+    """Stream for changed stock by warehouse group code."""
+    
+    name = "changed_stock_by_warehouse_group_code"
+    primary_keys = ["ItemCode"]
+    replication_key = "Token"
+    schema = th.PropertiesList(
+        th.Property("ItemCode", th.StringType),
+        th.Property("Available", th.StringType),
+        th.Property("Stock", th.StringType),
+        th.Property("Reserved", th.StringType),
+        th.Property("ItemStatus", th.StringType),
+        th.Property("ExpectedDate", th.DateTimeType),
+        th.Property("FirstExpectedDate", th.DateTimeType),
+        th.Property("FirstExpectedQtyWaitingToReceive", th.StringType),
+        th.Property("LastModified", th.DateTimeType),
+        th.Property("QtyWaitingToReceive", th.StringType),
+        th.Property("Token", th.StringType)
+    ).to_dict()
+
+    def _get_soap_envelope(self, token: int, count: int = 200) -> str:
+        """Generate SOAP envelope for ChangedStockByWarehousegroupCode."""
+        return f"""<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <tns:ChangedStockByWarehousegroupCode xmlns:tns="http://sherpa.sherpaan.nl/">
+      <tns:securityCode>{self.config["security_code"]}</tns:securityCode>
+      <tns:token>{token}</tns:token>
+      <tns:maxResult>{count}</tns:maxResult>
+    </tns:ChangedStockByWarehousegroupCode>
+  </soap12:Body>
+</soap12:Envelope>"""
+
+    def get_records(self, context: Optional[dict] = None) -> Iterable[dict]:
+        """Get records using token-based pagination."""
+        page_size = self.config.get("chunk_size", 200)
+        yield from self.get_records_with_token_pagination(
+            get_soap_envelope=self._get_soap_envelope,
+            service_name="ChangedStockByWarehousegroupCode",
+            items_key="ItemStockGroupToken",
+            context=context,
+            page_size=page_size,
+        )
