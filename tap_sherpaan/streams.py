@@ -475,6 +475,7 @@ class ChangedStockByWarehouseGroupCodeStream(SherpaStream):
     <tns:ChangedStockByWarehousegroupCode xmlns:tns="http://sherpa.sherpaan.nl/">
       <tns:securityCode>{self.config["security_code"]}</tns:securityCode>
       <tns:token>{token}</tns:token>
+      <tns:warehousegroupCode>{self.config["warehouse_group_code"]}</tns:warehousegroupCode>
       <tns:maxResult>{count}</tns:maxResult>
     </tns:ChangedStockByWarehousegroupCode>
   </soap12:Body>
