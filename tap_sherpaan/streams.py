@@ -509,3 +509,44 @@ class ChangedStockByWarehouseGroupCodeStream(SherpaStream):
             context=context,
             page_size=page_size,
         )
+
+
+class ChangedDeletedObjectsStream(SherpaStream):
+    """Stream for changed stock by warehouse group code."""
+    
+    name = "changed_deleted_objects"
+    primary_keys = ["Token"]
+    replication_key = "Token"
+    schema = th.PropertiesList(
+        th.Property("ObjectType", th.StringType),
+        th.Property("ObjectId", th.StringType),
+        th.Property("ObjectCode", th.IntegerType),
+        th.Property("UserId", th.IntegerType),
+        th.Property("UserName", th.StringType),
+        th.Property("Date", th.DateTimeType),
+        th.Property("Token", th.StringType)
+    ).to_dict()
+
+    def _get_soap_envelope(self, token: int, count: int = 200) -> str:
+        """Generate SOAP envelope for ChangedDeletedObjects."""
+        return f"""<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <tns:ChangedDeletedObjects xmlns:tns="http://sherpa.sherpaan.nl/">
+      <tns:securityCode>{self.config["security_code"]}</tns:securityCode>
+      <tns:token>{token}</tns:token>
+      <tns:count>{count}</tns:count>
+    </tns:ChangedDeletedObjects>
+  </soap12:Body>
+</soap12:Envelope>"""
+
+    def get_records(self, context: Optional[dict] = None) -> Iterable[dict]:
+        """Get records using token-based pagination."""
+        page_size = self.config.get("chunk_size", 200)
+        yield from self.get_records_with_token_pagination(
+            get_soap_envelope=self._get_soap_envelope,
+            service_name="ChangedDeletedObjects",
+            items_key="DeletedObject",
+            context=context,
+            page_size=page_size,
+        )
