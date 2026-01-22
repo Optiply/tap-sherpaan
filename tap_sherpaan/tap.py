@@ -88,7 +88,8 @@ class TapSherpaan(Tap):
             streams.ChangedOrdersInformationStream(self),
             streams.ChangedPurchasesStream(self),
             streams.PurchaseInfoStream(self),
-            streams.ChangedStockByWarehouseGroupCodeStream(self)
+            streams.ChangedStockByWarehouseGroupCodeStream(self),
+            streams.ChangedDeletedObjectsStream(self)
         ]
 
 
