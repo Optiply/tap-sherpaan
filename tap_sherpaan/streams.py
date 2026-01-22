@@ -519,8 +519,8 @@ class ChangedDeletedObjectsStream(SherpaStream):
     replication_key = "Token"
     schema = th.PropertiesList(
         th.Property("ObjectType", th.StringType),
-        th.Property("ObjectId", th.StringType),
-        th.Property("ObjectCode", th.IntegerType),
+        th.Property("ObjectId", th.IntegerType),
+        th.Property("ObjectCode", th.StringType),
         th.Property("UserId", th.IntegerType),
         th.Property("UserName", th.StringType),
         th.Property("Date", th.DateTimeType),
