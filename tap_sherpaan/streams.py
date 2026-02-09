@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import html
+import json
 from typing import Dict, Any, Iterable, Optional
 from singer_sdk import typing as th
 from tap_sherpaan.client import SherpaStream
@@ -433,11 +434,11 @@ class PurchaseInfoStream(SherpaStream):
     schema = th.PropertiesList(
         th.Property("SupplierCode", th.StringType),
         th.Property("PurchaseOrderNumber", th.StringType),
-        th.Property("PurchaseDate", th.StringType),
-        th.Property("PurchaseStatus", th.DateTimeType),
+        th.Property("PurchaseDate", th.DateTimeType),
+        th.Property("PurchaseStatus", th.StringType),
         th.Property("Reference", th.StringType),
         th.Property("WarehouseCode", th.StringType),
-        th.Property("PurchaseLine", th.StringType)
+        th.Property("PurchaseLines", th.StringType)
     ).to_dict()
 
     def _get_soap_envelope(self, token: int = 0, count: int = 200, **kwargs) -> str:
@@ -463,6 +464,54 @@ class PurchaseInfoStream(SherpaStream):
             context=context,
             page_size=page_size,
         )
+
+    def map_record(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize to PurchaseLines and ensure single-line case is a list.
+
+        When there is only one <PurchaseLine>, the base flattener turns it into
+        PurchaseLine_SupplierItemCode, PurchaseLine_ItemCode, etc., so "PurchaseLines"
+        is missing and the CSV column is empty. When there are multiple lines they
+        are JSON-encoded as a list. We always set "PurchaseLines" to a JSON array
+        of line objects (reconstructing from flattened keys when there was one line).
+        """
+        record = super().map_record(item)
+        # Case 1: value already set (multiple lines from API) under PurchaseLine or PurchaseLines
+        raw = record.get("PurchaseLines") or record.get("PurchaseLine")
+        if raw is not None:
+            if isinstance(raw, str):
+                try:
+                    parsed = json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
+                    record["PurchaseLines"] = raw
+                    return record
+            else:
+                parsed = raw
+            if isinstance(parsed, list):
+                record["PurchaseLines"] = json.dumps(parsed)
+                return record
+            if isinstance(parsed, dict):
+                for key in ("PurchaseLine", "PurchaseLines"):
+                    if key in parsed:
+                        line_data = parsed[key]
+                        lines = line_data if isinstance(line_data, list) else [line_data]
+                        record["PurchaseLines"] = json.dumps(lines)
+                        return record
+                for k, v in parsed.items():
+                    if "PurchaseLine" in k:
+                        lines = v if isinstance(v, list) else [v]
+                        record["PurchaseLines"] = json.dumps(lines)
+                        return record
+            record["PurchaseLines"] = json.dumps(parsed)
+            return record
+        # Case 2: Single line was flattened to PurchaseLine_* keys; reconstruct one line
+        prefix = "PurchaseLine_"
+        line_keys = [k for k in record if k.startswith(prefix)]
+        if line_keys:
+            single_line = {}
+            for k in line_keys:
+                single_line[k[len(prefix) :]] = record[k]
+            record["PurchaseLines"] = json.dumps([single_line])
+        return record
 
 
 class ChangedStockByWarehouseGroupCodeStream(SherpaStream):
