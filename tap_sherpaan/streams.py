@@ -438,7 +438,8 @@ class PurchaseInfoStream(SherpaStream):
         th.Property("PurchaseStatus", th.StringType),
         th.Property("Reference", th.StringType),
         th.Property("WarehouseCode", th.StringType),
-        th.Property("PurchaseLines", th.StringType)
+        th.Property("PurchaseLines", th.StringType),
+        th.Property("ExternalOrdernumber", th.StringType)
     ).to_dict()
 
     def _get_soap_envelope(self, token: int = 0, count: int = 200, **kwargs) -> str:
